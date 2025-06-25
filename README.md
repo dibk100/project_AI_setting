@@ -1,13 +1,8 @@
 # project_AI_PetBabel 🐾💬
-**Subject**: 
-- A Multi-task AI Model for Cat Language Translation  
-  (Translating Cat Behaviors and Emotions into Natural Language)   
-
-**Purpose**:
-- 고양이 동영상에서 행동, 감정, 상황을 자동 인식하고, 이를 바탕으로 고양이 ‘언어’를 자연어로 생성하는 AI 시스템 개발   
-
-**Goal**: 
-- 반려동물의 상태를 이해하고 소통할 수 있는 인터페이스 구현
+- **Subject**: Translating Cat Language by Leveraging CNN-Temporal Features and LLMs
+  (고양이 행동 및 감정 이해를 위한 다중 태스크 CNN-Temporal 특징 추출과 자연어 번역 모델 개발)   
+- **Purpose**: 고양이 동영상에서 행동, 감정, 상황을 자동 인식하고, 이를 바탕으로 고양이 ‘언어’를 자연어로 생성하는 AI 시스템 개발   
+- **Goal**: 반려동물의 상태를 이해하고 소통할 수 있는 인터페이스 구현
 
 ## 📋 To-Do
 - [ ] 🔄 Data : 데이터 전처리  
