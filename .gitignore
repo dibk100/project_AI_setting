@@ -8,7 +8,7 @@
 *.csv
 */wandb
 *.pth
-data/
+data_*/
 *.mp4
 *.env
 checkpoints/
@@ -17,6 +17,7 @@ log/
 saved_models/
 *.jpg
 *.json
+
 
 ### Linux ###
 *~
