@@ -1,0 +1,54 @@
+model_name: "lstm"              # transformer lstm
+backbone_name : "resnet18"
+
+# 모델 저장 경로
+save_path: "./saved_models"
+best_model_path: ""       
+test_image_path : ""    
+
+# 데이터 경로 설정
+data:
+  train_csv: ../data/data_fin/train_dataset.csv
+  val_csv: ../data/data_fin/val_dataset.csv
+  test_csv: ../data/data_fin/__.csv
+  root_dir: "../data/data_image"   # 프레임 이미지 저장 경로 
+
+batch_size: 4       # 데이터 작고, 클래스 불균형 → 작은 배치 사이즈로 더 자주 업데이트
+epochs: 10
+learning_rate: 1e-3       # 1e-3~1e-4   3e-5
+seed: 42
+device: "cuda:1" 
+
+# wandb 설정
+wandb_project: "project_PetBabel_cnn_temporal"
+
+
+label_names:
+  action:                     # 12개 > 10개로 진행
+    - 꼬리를 흔드는 동작
+    - 걷거나 달리는 동작
+    - 앞발을 뻗어 휘적거리는 동작
+    - 옆으로 눕는 동작
+    - 발을 숨기고 웅크리고 앉는 동작
+    - 납작 엎드리는 동작
+    - 배를 보여주는 동작
+    - 머리를 들이대는 동작
+    - 앞발로 꾹꾹 누르는 동작
+    - 좌우로 뒹구는 동작
+
+  emotion:                  # 6개  > 5개  
+    - 공격성
+    - 불안/공포
+    - 편안/안정
+    - 행복/즐거움
+    - 화남/불쾌
+
+  situation:        # 15개 > 8개
+    - 기타
+    - 낯선 상황/불안
+    - 놀이/자극
+    - 돌아옴/재회
+    - 분리/고립
+    - 싫은 자극/처벌
+    - 위생관리
+    - 휴식/편안
