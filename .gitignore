@@ -4,16 +4,13 @@
 # github에 공개하면 안되는 자료 및 데이터
 ### self ###
 *.pt
+*.pth
 *.zip
 *.csv
 */wandb
-*.pth
 data_*/
 *.mp4
 *.env
-checkpoints/
-outputs/
-log/
 saved_models/
 *.jpg
 *.json
