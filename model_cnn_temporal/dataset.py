@@ -57,9 +57,6 @@ class CatVideoDataset(Dataset):
             if os.path.exists(frame_path):
                 image = Image.open(frame_path).convert("RGB")
 
-                # if i == 0 and idx % 500 == 0:
-                #     print(f"[Debug] Video: {row['meta_json']}, frame: {os.path.basename(frame_path)}, size: {image.size}, mode: {image.mode}")
-
                 if self.transform:
                     image_tensor = self.transform(image)
                     if i == 0 and idx % 500 == 0:

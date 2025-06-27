@@ -73,17 +73,7 @@ def train_model(config):
 
             loss = loss_a + loss_e + loss_s
             loss.backward()
-            
-            # gradient 체크 (디버깅용)
-            # if batch_idx == 0:
-                # print(f"--- Epoch {epoch}, Batch {batch_idx} ---")
-                # for name, param in model.named_parameters():
-                #     if param.grad is None:
-                #         print(f"[Grad Check] {name} has no gradient!")
-                #     else:
-                #         print(f"[Grad Check] {name} grad norm: {param.grad.norm().item()}")
-                #     if "conv1" in name:
-                #         print(f"[Check] {name} requires_grad: {param.requires_grad}")
+
             if batch_idx%100==0:
                 print(f"[conv1 output] shape: {conv1_outputs[0].shape}")
                 print(f"[conv1 output] mean: {conv1_outputs[0].mean().item():.4f}, std: {conv1_outputs[0].std().item():.4f}, max: {conv1_outputs[0].max().item():.4f}")
