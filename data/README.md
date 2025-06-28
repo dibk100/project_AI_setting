@@ -61,7 +61,7 @@ data_image/
 - **2차 전처리 (라벨 정제)**:  
   - **Action**: 12개 클래스  
   - **Emotion**: 6개 → 5개로 통합 (공포 + 불안 / 슬픔 통합)  
-  - **Situation**: 17개 → 12개로 축소 (불균형 제거 및 유사 클래스 통합)
+  - **Situation**: 17개 → 12개 → 8개로 축소 (불균형 제거 및 유사 클래스 통합)
 
 ### 🧩 Preprocessing Strategy (`dataProcessing.ipynb`, `dataStrategy.py`)
 
