@@ -94,7 +94,11 @@ class CatVideoDataset(Dataset):
 
 def get_dataset(config: dict, split: str = 'train') -> Dataset:
     csv_path = config['data'][f'{split}_csv']
-    root_dir = config['data'].get('root_dir', './data')
+    
+    if split == 'test' :
+        root_dir = config['data'].get('test_dir', './data/data_validation/test_image')
+    else :
+        root_dir = config['data'].get('root_dir', './data')
     max_frames = config.get('max_frames', 150)
 
     label_maps = get_label_maps_from_config(config)

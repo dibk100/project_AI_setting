@@ -97,24 +97,34 @@ def evaluate_model(config, split='test'):
     dataset = get_dataset(config, split=split)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
     
-    # MODEL_CLASSES가 model.py에 정의되어 있다고 가정
+    # 모델 초기화
     model_class = MODEL_CLASSES.get(config['model_name'].lower(), MultiLabelVideoTransformerClassifier)
     model_wrapper = model_class(
         num_actions=len(config['label_maps']['action']),
         num_emotions=len(config['label_maps']['emotion']),
         num_situations=len(config['label_maps']['situation']),
         backbone_name=config.get('backbone_name', 'resnet18'),
-        pretrained=False  # 평가 시에는 fine-tuned 가중치를 불러오므로 pretrained=False
+        pretrained=False
     )
     model = model_wrapper.get_model()
 
-    # 저장된 best 모델 불러오기
+    # 저장된 best 모델 로드
     model_path = os.path.join(config['save_path'], config['model_name'], config['best_model_path']) 
-    assert os.path.exists(model_path), f"모델 경로 {model_path}가 존재하지 않습니다."
+    assert os.path.exists(model_path), f"❌ 모델 경로 {model_path}가 존재하지 않습니다."
 
-    model.load_state_dict(torch.load(model_path, map_location=device), strict=True)
+    checkpoint = torch.load(model_path, map_location=device)
+    
+    # 가중치만 저장된 경우 vs 전체 딕셔너리 저장된 경우 모두 처리
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+        print(f"✅ Loaded full checkpoint: epoch={checkpoint.get('epoch', '?')}, macro_f1={checkpoint.get('macro_f1', '?')}")
+    else:
+        model.load_state_dict(checkpoint)
+        print("✅ Loaded model weights only")
+
     model.to(device)
 
+    # 평가
     val_loss, macro_f1, micro_f1, partial_score, exact_match_acc, label_wise = evaluate_model_val(model, loader, device)
 
     print(f"\n✅🔍 Evaluation ({split.upper()} Set):")

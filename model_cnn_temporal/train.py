@@ -118,6 +118,8 @@ def train_model(config):
             best_score = macro_f1
             save_best_model(
                 model,
+                optimizer,
+                lr_scheduler,
                 save_dir=config['save_path'],
                 base_name=config['model_name'],
                 epoch=epoch,
