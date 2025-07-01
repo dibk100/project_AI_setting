@@ -1,4 +1,4 @@
-model_name: "lstm"              # transformer lstm
+model_name: "transformer"              # transformer lstm
 backbone_name : "resnet18"
 
 # 모델 저장 경로
@@ -18,7 +18,7 @@ batch_size: 4       # 데이터 작고, 클래스 불균형 → 작은 배치 �
 epochs: 30
 learning_rate: 1e-3       # 1e-3~1e-4   3e-5
 seed: 42
-device: "cuda:2" 
+device: "cuda:3" 
 
 # wandb 설정
 wandb_project: "project_PetBabel_cnn_temporal"

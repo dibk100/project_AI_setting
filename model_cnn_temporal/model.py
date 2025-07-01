@@ -64,11 +64,11 @@ class MultiLabelVideoTransformerClassifier(nn.Module):
         self.dropout = nn.Dropout(0.2)
         self.norm = nn.LayerNorm(self.feature_dim)
         
-        # self.attention_pooling = nn.Sequential(
-        #     nn.Linear(self.feature_dim, 128),
-        #     nn.Tanh(),
-        #     nn.Linear(128, 1),
-        # )
+        self.attention_pooling = nn.Sequential(
+            nn.Linear(self.feature_dim, 128),
+            nn.Tanh(),
+            nn.Linear(128, 1),
+        )
         
     def forward(self, x,epoch=None, batch_idx=None):  # x: [B, T, C, H, W]
         B, T, C, H, W = x.size()
@@ -98,12 +98,12 @@ class MultiLabelVideoTransformerClassifier(nn.Module):
         # encoded = self.norm(encoded)        # 정규화 : transforemer 내부에 norm이 적용되고 있ㅇㄹ 수 있음
         
         # Attention-based pooling
-        # attn_scores = self.attention_pooling(encoded)        # [B, T, 1]
-        # attn_weights = torch.softmax(attn_scores, dim=1)     # [B, T, 1]
-        # pooled = (encoded * attn_weights).sum(dim=1)         # [B, D]
+        attn_scores = self.attention_pooling(encoded)        # [B, T, 1]
+        attn_weights = torch.softmax(attn_scores, dim=1)     # [B, T, 1]
+        pooled = (encoded * attn_weights).sum(dim=1)         # [B, D]
         
         # Attention pooling 대신 평균 pooling 사용
-        pooled = encoded.mean(dim=1)           # [B, feature_dim] (평균 pooling) -> 모든 프레임의 feature를 동등하게 평균함. 중요 프레임 구분을 못함.
+        # pooled = encoded.mean(dim=1)           # [B, feature_dim] (평균 pooling) -> 모든 프레임의 feature를 동등하게 평균함. 중요 프레임 구분을 못함.
         pooled = self.dropout(pooled)        # dropout 적용 :: 위치 고민
 
         # 시각화용으로 반환
@@ -135,63 +135,61 @@ class MultiLabelVideoLSTMClassifier(nn.Module):
                             hidden_size=lstm_hidden_dim,
                             num_layers=lstm_layers,
                             batch_first=True,
-                            bidirectional=False)
+                            bidirectional=True)
+        
+        ## 추가
+        self.bidirectional = True
+        
+        # 양방향의 경우, [B, T, 1024] ← forward 512 + backward 512
+        lstm_output_dim = lstm_hidden_dim * 2 if self.lstm.bidirectional else lstm_hidden_dim
+        self.feature_norm = nn.LayerNorm(self.feature_dim)
 
         self.dropout = nn.Dropout(dropout)
 
         # # Attention pooling (optional)
-        # self.attention_pooling = nn.Sequential(
-        #     nn.Linear(lstm_hidden_dim, 128),
-        #     nn.Tanh(),
-        #     nn.Linear(128, 1),
-        # )
-
-        self.action_head = nn.Linear(self.feature_dim, num_actions)
-        self.emotion_head = nn.Linear(self.feature_dim, num_emotions)
-        self.situation_head = nn.Linear(self.feature_dim, num_situations)
+        self.attention_pooling = nn.Sequential(
+            nn.Linear(lstm_output_dim, 128),
+            nn.Tanh(),
+            nn.Linear(128, 1),
+        )
+        
         # Task heads
-        # self.action_head = nn.Sequential(
-        #     nn.Linear(lstm_hidden_dim, lstm_hidden_dim // 2),
-        #     nn.ReLU(),
-        #     nn.Linear(lstm_hidden_dim // 2, num_actions)
-        # )
-        # self.emotion_head = nn.Sequential(
-        #     nn.Linear(lstm_hidden_dim, lstm_hidden_dim // 2), 
-        #     nn.ReLU(),
-        #     nn.Linear(lstm_hidden_dim // 2, num_emotions)
-        # )
-        # self.situation_head = nn.Sequential(
-        #     nn.Linear(lstm_hidden_dim, lstm_hidden_dim // 2),
-        #     nn.ReLU(),
-        #     nn.Linear(lstm_hidden_dim // 2, num_situations)
-        # )
+        def make_head(out_dim):
+            return nn.Sequential(
+                nn.Linear(lstm_output_dim, lstm_hidden_dim),
+                nn.ReLU(),
+                nn.Linear(lstm_hidden_dim, out_dim)
+            )
+            
+        self.action_head = make_head(num_actions)
+        self.emotion_head = make_head(num_emotions)
+        self.situation_head = make_head(num_situations)
 
     def forward(self, x,epoch=None, batch_idx=None):  # x: [B, T, C, H, W]
         B, T, C, H, W = x.size()
         
-        device = x.device
-        h = torch.zeros(self.lstm.num_layers, B, self.lstm.hidden_size).to(device)
-        c = torch.zeros(self.lstm.num_layers, B, self.lstm.hidden_size).to(device)
-            
-        lstm_outs = []
-        for t in range(T):
-            frame = x[:, t]  # [B, C, H, W]
-            feat = self.shared_encoder(frame)  # [B, feature_dim]
-            
-            feat = feat.unsqueeze(1)  # [B, 1, feature_dim] - because LSTM expects sequence
-            out, (h, c) = self.lstm(feat, (h, c))          # Step-by-step feeding
-            
-            lstm_outs.append(out)                          # [B, 1, hidden_dim]
-            
-        lstm_out = torch.cat(lstm_outs, dim=1)  # [B, T, hidden_dim]
+        # 프레임별 이미지 피처 추출을 위해 (B * T, C, H, W)형태로 변경 -> (4*150,3,64,64)
+        x = x.view(B * T, C, H, W)
+        feats = self.shared_encoder(x)  # [B*T, feature_dim]로 CNN 통과
+        feats = self.feature_norm(feats)  # 정규화로 안정화
+        feats = self.dropout(feats)
+        feats = feats.view(B, T, -1)  # [B, T, feature_dim] **시퀀스 형태**로 복원
         
-        if self.debug and epoch is not None and batch_idx is not None and epoch % 500 == 0 and batch_idx % 500 == 0:
-            print(f"step01 : [lstm_out] shape: {lstm_out.shape}, mean: {lstm_out.mean().item():.4f}, std: {lstm_out.std().item():.4f}")
+        # LSTM
+        lstm_out, _ = self.lstm(feats)  # [B, T, hidden*2]
 
-        pooled = lstm_out.mean(dim=1)  # [B, hidden_dim]
-        
-        if self.debug and epoch is not None and batch_idx is not None and epoch % 500 == 0 and batch_idx % 500 == 0:
-            print(f"step02 : [pooled] shape: {pooled.shape}, mean: {pooled.mean().item():.4f}, std: {pooled.std().item():.4f}")
+        if self.debug and epoch is not None and batch_idx is not None:
+            if epoch % 500 == 0 and batch_idx == 0:
+                print(f"[lstm_out] shape: {lstm_out.shape}, mean: {lstm_out.mean().item():.4f}, std: {lstm_out.std().item():.4f}")
+
+        # Attention-based pooling
+        attn_scores = self.attention_pooling(lstm_out)      # [B, T, 1]
+        attn_weights = torch.softmax(attn_scores, dim=1)    # [B, T, 1]
+        pooled = (lstm_out * attn_weights).sum(dim=1)       # [B, hidden*2]
+
+        if self.debug and epoch is not None and batch_idx is not None:
+            if epoch % 500 == 0 and batch_idx == 0:
+                print(f"[pooled] shape: {pooled.shape}, mean: {pooled.mean().item():.4f}, std: {pooled.std().item():.4f}")
 
         pooled = self.dropout(pooled)
 
@@ -200,6 +198,7 @@ class MultiLabelVideoLSTMClassifier(nn.Module):
             self.emotion_head(pooled),
             self.situation_head(pooled)
         )
+        
     def get_model(self):
         return self
     
